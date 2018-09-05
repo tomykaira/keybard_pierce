@@ -34,8 +34,6 @@ void keyboard_init() {
     _delay_ms(2);
   }
   usbDeviceConnect();
-
-  sei();
 }
 
 void keyboard_output(uint8_t key) {

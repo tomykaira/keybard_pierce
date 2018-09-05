@@ -8,6 +8,7 @@ CFLAGS = -Wall -Os -Iusbdrv -mmcu=attiny85 -DF_CPU=16500000 -I.
 OBJFLAGS = -j .text -j .data -O ihex
 DUDEFLAGS = -p attiny85 -c arduino -v
 
+HEADERS = usbconfig.h keymap.h morse/keyboard.h
 OBJECTS = v-usb/usbdrv/usbdrv.o v-usb/usbdrv/usbdrvasm.o morse/main.o morse/keyboard.o
 
 all: main.hex
@@ -17,6 +18,9 @@ flash: main.hex
 
 eeprom: main.eep
 	$(DUDE) $(DUDEFLAGS) -U eeprom:w:$<
+
+keymap.h: helper/makelut.rb
+	ruby $<
 
 # Housekeeping if you want it
 clean:
@@ -32,7 +36,7 @@ main.elf: $(OBJECTS)
 
 # Without this dependance, .o files will not be recompiled if you change
 # the config! I spent a few hours debugging because of this...
-$(OBJECTS): usbconfig.h
+$(OBJECTS): $(HEADERS)
 
 # From C source to .o object file
 %.o: %.c
