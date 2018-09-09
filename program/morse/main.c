@@ -1,5 +1,5 @@
-#include <avr/interrupt.h>
 #include <avr/io.h>
+#include <avr/interrupt.h>
 #include <avr/wdt.h>
 
 #include "./keyboard.h"
@@ -10,24 +10,18 @@
 #define PAUSE_PRESS_THRESHOLD 200
 
 #define DIFF_UINT16(x, y) ((x) > (y) ? ((x) - (y)) : (0xffff - (y) - (x) + 1))
-#define HIGH_IF(b, n) (PORTB = (b) ? (PORTB | (1 << (n))) : (PORTB ^ (1 << (n))))
+#define LOW_IF(b, n) (PORTB = (b) ? (PORTB ^ (1 << (n))) : (PORTB | (1 << (n))))
+#define RESETENABLED 1
+#if RESETENABLED
+#  define SWITCH_PIN 2
+#else
+#  define SWITCH_PIN 5
+#endif
 
-static uint16_t tick = 0;
-static uint16_t last_down = 0;
-static uint16_t last_up = 0;
+volatile static uint16_t tick = 0;
+volatile static uint16_t last_down = 0;
+volatile static uint16_t last_up = 0;
 
-IVR(TIMER1_OVF_vect) {
-  if (last_down == 0 && PINB5) {
-    last_down = tick;
-  }
-  if (last_down != 0 && !PINB5) {
-    last_up = tick;
-  }
-
-  tick ++;
-	TCNT1 = TCNT_RESET_VAL;
-  return 0;
-}
 
 static uint16_t val;
 static uint8_t offset;
@@ -52,33 +46,46 @@ void send_key() {
   }
 }
 
-int main() {
-  // enable 1s watchdog timer
+volatile uint8_t i = 0;
+
+static inline void initTimer1(void)
+{
+  TCCR1 |= (1 << CTC1);  // clear timer on compare match
+  TCCR1 |= (1 << CS13) | (1 << CS12) | (1 << CS11); //clock prescaler 8192
+  OCR1C = 122; // compare match value 
+  TIMSK |= (1 << OCIE1A); // enable compare match interrupt
+}
+ISR(TIMER1_COMPA_vect)
+{
+  char switch_pressed = (PINB & (1 << SWITCH_PIN));
+  if (last_down == 0 && switch_pressed) {
+    last_down = tick;
+  }
+  if (last_down != 0 && !switch_pressed) {
+    last_up = tick;
+  }
+  tick ++;
+}
+
+
+
+int main(void)
+{
   wdt_enable(WDTO_1S);
-
-  // Clock init
-	TCNT1 = TCNT_RESET_VAL; // 1 kHz?
-	TCCR1 = (TCCR1 & 0xf0) | 0x0b; // PCK/1024
-	TIMSK = (1 << TOIE1) ;   // Enable timer1 overflow interrupt(TOIE1)
-
-  // switch port init
-  DDRB &= 0 << 5;
-  PORTB |= 1 << 5;
-  MCUCR &= 0 << 6;
-
-  // LED init
-  DDRB |= 1 << 0; // B
-  DDRB |= 1 << 1; // G
-  DDRB |= 1 << 2; // R
-
+	// initializations 
+	DDRB = 0x0F;         // enable PB0-PB3 as outputs
+	initTimer1();        // initialize timer registers
+  DDRB ^= 0 << SWITCH_PIN;
+  PORTB |= 1 << SWITCH_PIN;
+  MCUCR ^= 0 << 6;
   init_signal();
 
   // keyboard (HID USB) init
   keyboard_init();
-
-  sei();
-
-  while (1) {
+	sei();               // enable interrupts
+	
+	while(1)
+	{
     wdt_reset(); // keep the watchdog happy
 
     if (last_down > 0 && last_up > 0) {
@@ -90,11 +97,13 @@ int main() {
       last_up = 0;
     }
 
-    HIGH_IF(val > 0, 0);
-    HIGH_IF(DIFF_UINT16(tick, last_down) > LONG_PRESS_THRESHOLD, 1);
-    HIGH_IF(last_down > 0, 2);
-  }
-
-
-  return 0;
+    LOW_IF(last_down > 0, 0);
+    LOW_IF(DIFF_UINT16(tick, last_down) > LONG_PRESS_THRESHOLD, 1);
+#if !RESETENABLED
+    LOW_IF(val > 0, 2);
+#endif
+      keyboard_output(29);
+	}
+	
+	return 0;
 }
