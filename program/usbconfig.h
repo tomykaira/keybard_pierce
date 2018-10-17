@@ -7,21 +7,29 @@
  * License: GNU GPL v2 (see License.txt), GNU GPL v3 or proprietary (CommercialLicense.txt)
  */
 
+/*
+This file has been modified for use as a part of TrinketKeyboard
+
+Copyright (c) 2013 Adafruit Industries
+All rights reserved.
+
+TrinketKeyboard is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as
+published by the Free Software Foundation, either version 3 of
+the License, or (at your option) any later version.
+
+TrinketKeyboard is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with TrinketKeyboard. If not, see
+<http://www.gnu.org/licenses/>.
+*/
+
 #ifndef __usbconfig_h_included__
 #define __usbconfig_h_included__
-
-/*
-General Description:
-This file is an example configuration (with inline documentation) for the USB
-driver. It configures V-USB for USB D+ connected to Port D bit 2 (which is
-also hardware interrupt 0 on many devices) and USB D- to Port D bit 4. You may
-wire the lines to any other port, as long as D+ is also wired to INT0 (or any
-other hardware interrupt, as long as it is the highest level interrupt, see
-section at the end of this file).
-+ To create your own usbconfig.h file, copy this file to your project's
-+ firmware source directory) and rename it to "usbconfig.h".
-+ Then edit it accordingly.
-*/
 
 /* ---------------------------- Hardware Config ---------------------------- */
 
@@ -118,7 +126,7 @@ section at the end of this file).
 /* Define this to 1 if the device has its own power supply. Set it to 0 if the
  * device is powered from the USB bus.
  */
-#define USB_CFG_MAX_BUS_POWER           100
+#define USB_CFG_MAX_BUS_POWER           20
 /* Set this variable to the maximum USB bus power consumption of your device.
  * The value is in milliamperes. [It will be divided by two since USB
  * communicates power requirements in units of 2 mA.]
@@ -203,10 +211,18 @@ section at the end of this file).
  * usbFunctionWrite(). Use the global usbCurrentDataToken and a static variable
  * for each control- and out-endpoint to check for duplicate packets.
  */
-#define USB_CFG_HAVE_MEASURE_FRAME_LENGTH   0
+#define USB_CFG_HAVE_MEASURE_FRAME_LENGTH   1
 /* define this macro to 1 if you want the function usbMeasureFrameLength()
  * compiled in. This function can be used to calibrate the AVR's RC oscillator.
  */
+#if defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__)
+#ifndef __ASSEMBLER__
+#include <avr/interrupt.h>  // for sei()
+extern void calibrateOscillator(void);
+#endif
+#define USB_RESET_HOOK(resetStarts)  if(!resetStarts){cli(); calibrateOscillator(); sei();}
+#endif
+
 #define USB_USE_FAST_CRC                0
 /* The assembler module has two implementations for the CRC algorithm. One is
  * faster, the other is smaller. This CRC routine is only used for transmitted
@@ -222,12 +238,8 @@ section at the end of this file).
 /* USB vendor ID for the device, low byte first. If you have registered your
  * own Vendor ID, define it here. Otherwise you may use one of obdev's free
  * shared VID/PID pairs. Be sure to read USB-IDs-for-free.txt for rules!
- * *** IMPORTANT NOTE ***
- * This template uses obdev's shared VID/PID pair for Vendor Class devices
- * with libusb: 0x16c0/0x5dc.  Use this VID/PID pair ONLY if you understand
- * the implications!
  */
-#define  USB_CFG_DEVICE_ID       0xdb, 0x27 /* = 0x27db = 10203 usb keyboard */
+#define  USB_CFG_DEVICE_ID       0xdc, 0x05 /* = 0x05dc = 1500 */
 /* This is the ID of the product, low byte first. It is interpreted in the
  * scope of the vendor ID. If you have registered your own VID with usb.org
  * or if you have licensed a PID from somebody else, define it here. Otherwise
@@ -241,8 +253,8 @@ section at the end of this file).
 #define USB_CFG_DEVICE_VERSION  0x00, 0x01
 /* Version number of the device: Minor number first, then major number.
  */
-#define USB_CFG_VENDOR_NAME     'o', 'b', 'd', 'e', 'v', '.', 'a', 't'
-#define USB_CFG_VENDOR_NAME_LEN 8
+#define USB_CFG_VENDOR_NAME     't', 'o', 'm', 'y', 'k', 'a', 'i', 'r', 'a'
+#define USB_CFG_VENDOR_NAME_LEN 9
 /* These two values define the vendor name returned by the USB device. The name
  * must be given as a list of characters under single quotes. The characters
  * are interpreted as Unicode (UTF-16) entities.
@@ -266,18 +278,16 @@ section at the end of this file).
  * to fine tune control over USB descriptors such as the string descriptor
  * for the serial number.
  */
-#define USB_CFG_DEVICE_CLASS        0    /* set to 0 if deferred to interface */
-#define USB_CFG_DEVICE_SUBCLASS     0
+#define USB_CFG_DEVICE_CLASS        0x00 // 0x00 means "check the interface class instead"
+#define USB_CFG_DEVICE_SUBCLASS     0x00
 /* See USB specification if you want to conform to an existing device class.
  * Class 0xff is "vendor specific".
  */
-#define USB_CFG_INTERFACE_CLASS     3   /* define class here if not at device level */
-#define USB_CFG_INTERFACE_SUBCLASS  1
-#define USB_CFG_INTERFACE_PROTOCOL  1
+#define USB_CFG_INTERFACE_CLASS     0x03 // 0x03 means HID
+#define USB_CFG_INTERFACE_SUBCLASS  0x00
+#define USB_CFG_INTERFACE_PROTOCOL  0x00
 /* See USB specification if you want to conform to an existing device class or
- * protocol. The following classes must be set at interface level:
- * HID class is 3, no subclass and protocol required (but may be useful!)
- * CDC class is 2, use subclass 2 and protocol 1 for ACM
+ * protocol.
  */
 #define USB_CFG_HID_REPORT_DESCRIPTOR_LENGTH    63
 /* Define this to the length of the HID report descriptor, if you implement
@@ -287,7 +297,7 @@ section at the end of this file).
  * Don't forget to keep the array and this define in sync!
  */
 
-/* #define USB_PUBLIC static */
+//#define USB_PUBLIC static
 /* Use the define above if you #include usbdrv.c instead of linking against it.
  * This technique saves a couple of bytes in flash memory.
  */
@@ -356,8 +366,8 @@ section at the end of this file).
 #define USB_CFG_DESCR_PROPS_UNKNOWN                 0
 
 
-//#define usbMsgPtr_t unsigned short
-/* If usbMsgPtr_t is not defined, it defaults to 'uchar *'. We may define it to
+#define usbMsgPtr_t unsigned short
+/* If usbMsgPtr_t is not defined, it defaults to 'uchar *'. We define it to
  * a scalar type here because gcc generates slightly shorter code for scalar
  * arithmetics than for pointer arithmetics. Remove this define for backward
  * type compatibility or define it to an 8 bit type if you use data in RAM only
@@ -372,13 +382,13 @@ section at the end of this file).
  * which is not fully supported (such as IAR C) or if you use a differnt
  * interrupt than INT0, you may have to define some of these.
  */
-/* #define USB_INTR_CFG            MCUCR */
-/* #define USB_INTR_CFG_SET        ((1 << ISC00) | (1 << ISC01)) */
-/* #define USB_INTR_CFG_CLR        0 */
-/* #define USB_INTR_ENABLE         GIMSK */
-/* #define USB_INTR_ENABLE_BIT     INT0 */
-/* #define USB_INTR_PENDING        GIFR */
-/* #define USB_INTR_PENDING_BIT    INTF0 */
-/* #define USB_INTR_VECTOR         INT0_vect */
+#define USB_INTR_CFG            PCMSK
+#define USB_INTR_CFG_SET        (1 << USB_CFG_DPLUS_BIT)
+#define USB_INTR_CFG_CLR        0
+#define USB_INTR_ENABLE         GIMSK
+#define USB_INTR_ENABLE_BIT     PCIE
+#define USB_INTR_PENDING        GIFR
+#define USB_INTR_PENDING_BIT    PCIF
+#define USB_INTR_VECTOR         PCINT0_vect
 
 #endif /* __usbconfig_h_included__ */

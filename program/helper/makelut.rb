@@ -182,8 +182,8 @@ KEY_MEDIA_REFRESH  = 0xfa
 KEY_MEDIA_CALC  = 0xfb
 
 N = 0
-L = 1
-S = 2
+S = 1
+L = 2
 
 def code(v0, v1, v2, v3, v4)
   (v4 << 8) |
@@ -247,13 +247,16 @@ File.write("keymap.h", <<CODE)
 #define S 1
 #define N 0
 
-const uint16_t KEYMAP[#{codes.size}][2] PROGMEM = {
+static inline unsigned char keymap_morse_to_hid_key(uint16_t morse) {
+  switch (morse) {
 #{
   codes.map { |c, v|
-    "{#{c}, #{v}}"
-  }.join(",\n")
+    "case #{c}: return #{v};"
+  }.join("\n")
 }
-};
+  }
+  return 0;
+}
 
 #endif
 CODE

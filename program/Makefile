@@ -4,12 +4,12 @@ CC = avr-gcc
 OBJCOPY = avr-objcopy
 DUDE = avrdude
 
-CFLAGS = -Wall -Os -Iusbdrv -mmcu=attiny85 -DF_CPU=16500000 -I.
+CFLAGS = -Wall -Os -Iusbdrv -mmcu=attiny85 -DF_CPU=16000000 -I.
 OBJFLAGS = -j .text -j .data -O ihex
 DUDEFLAGS = -p attiny85 -c arduino -v
 
-HEADERS = usbconfig.h keymap.h morse/keyboard.h
-OBJECTS = v-usb/usbdrv/usbdrv.o v-usb/usbdrv/usbdrvasm.o morse/main.o morse/keyboard.o
+HEADERS = usbconfig.h keymap.h morse/TrinketKeyboardC.h
+OBJECTS = v-usb/usbdrv/usbdrv.o v-usb/usbdrv/usbdrvasm.o morse/main.o morse/TrinketKeyboardC.o
 
 all: main.hex
 
