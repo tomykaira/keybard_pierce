@@ -1,3 +1,22 @@
+/*
+    This is the part of the KeyPierce code that is usually written in C.
+
+    Copyright (c) 2018 Megumi Tomita
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/wdt.h>
@@ -115,6 +134,54 @@ ISR(TIMER1_COMPA_vect)
 }
 
 
+void loop_morse() {
+  while(1) {
+    wdt_reset(); // keep the watchdog happy
+    usbTick();
+
+    if (last_duration > 0) {
+      send_nyan();
+      /* put_signal(last_duration > LONG_PRESS_THRESHOLD ? L : S); */
+      last_duration = 0;
+    }
+    if (flush) {
+      send_key();
+      last_up = 0;
+      flush = 0;
+    }
+    LOW_IF(last_down == 0, LED_1);
+    PORTB |= _BV(SWITCH_PIN);
+
+#if !RESETENABLED
+    LOW_IF(val > 0, LED_3);
+#endif
+  }
+}
+
+void loop_nyan() {
+  while(1) {
+    wdt_reset(); // keep the watchdog happy
+    usbTick();
+
+    if (last_duration > 0) {
+      put_signal(last_duration > LONG_PRESS_THRESHOLD ? L : S);
+      last_duration = 0;
+    }
+    if (flush) {
+      send_key();
+      last_up = 0;
+      flush = 0;
+    }
+    LOW_IF(last_down == 0, LED_1);
+    LOW_IF(val > 0, LED_2);
+    PORTB |= _BV(SWITCH_PIN);
+
+#if !RESETENABLED
+    LOW_IF(val > 0, LED_3);
+#endif
+  }
+}
+
 
 int main(void)
 {
@@ -133,28 +200,7 @@ int main(void)
   usbBegin();
 	sei();               // enable interrupts
 
-  while(1)
-	{
-    wdt_reset(); // keep the watchdog happy
-    usbTick();
+  loop_nyan();
 
-    if (last_duration > 0) {
-      send_nyan();
-      /* put_signal(last_duration > LONG_PRESS_THRESHOLD ? L : S); */
-      last_duration = 0;
-    }
-    /* if (flush) { */
-    /*   send_key(); */
-    /*   last_up = 0; */
-    /*   flush = 0; */
-    /* } */
-    LOW_IF(last_down == 0, LED_1);
-    LOW_IF(val > 0, LED_2);
-    PORTB |= _BV(SWITCH_PIN);
-
-#if !RESETENABLED
-    LOW_IF(val > 0, LED_3);
-#endif
-	}
 	return 0;
 }
