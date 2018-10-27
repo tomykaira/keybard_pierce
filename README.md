@@ -99,6 +99,10 @@ micronucleus/commandline/micronucleus --run main.hex
 
 https://twitter.com/tomykaira_2 Twitter でおしえてください。
 
+## ビルドガイド
+
+土曜日中に書く
+
 ## Licenses
 
 英語表記をご確認ください。
