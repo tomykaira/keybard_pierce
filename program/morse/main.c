@@ -134,7 +134,7 @@ ISR(TIMER1_COMPA_vect)
 }
 
 
-void loop_morse() {
+void loop_nyan() {
   while(1) {
     wdt_reset(); // keep the watchdog happy
     usbTick();
@@ -158,7 +158,7 @@ void loop_morse() {
   }
 }
 
-void loop_nyan() {
+void loop_morse() {
   while(1) {
     wdt_reset(); // keep the watchdog happy
     usbTick();
